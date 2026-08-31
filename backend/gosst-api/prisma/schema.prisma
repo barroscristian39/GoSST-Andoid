@@ -1,0 +1,853 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model accident_evidences {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accident_id String    @db.Uuid
+  file_url    String
+  file_type   String?   @db.VarChar(50)
+  description String?
+  created_by  String?   @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  accidents   accidents @relation(fields: [accident_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model accident_form_links {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id String    @db.Uuid
+  unit_id    String    @db.Uuid
+  token_hash String    @unique
+  expires_at DateTime  @db.Timestamptz(6)
+  status     String    @default("ACTIVE") @db.VarChar(30)
+  created_by String?   @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  companies  companies @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units      units     @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model accident_history {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accident_id String    @db.Uuid
+  action      String    @db.VarChar(100)
+  description String?
+  created_by  String?   @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  accidents   accidents @relation(fields: [accident_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model accident_injuries {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accident_id String    @db.Uuid
+  body_region String?   @db.VarChar(150)
+  injury_type String?   @db.VarChar(150)
+  description String?
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  accidents   accidents @relation(fields: [accident_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model accident_investigations {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accident_id        String    @unique @db.Uuid
+  investigation_date DateTime? @db.Date
+  investigator_id    String?   @db.Uuid
+  description        String?
+  immediate_cause    String?
+  basic_cause        String?
+  root_cause         String?
+  corrective_actions String?
+  conclusions        String?
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime  @default(now()) @db.Timestamptz(6)
+  accidents          accidents @relation(fields: [accident_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users              users?    @relation(fields: [investigator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model accident_templates {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id String?    @db.Uuid
+  name       String     @db.VarChar(200)
+  file_url   String?
+  version    Int        @default(1)
+  status     String     @default("ACTIVE") @db.VarChar(30)
+  created_at DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at DateTime   @default(now()) @db.Timestamptz(6)
+  companies  companies? @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model accident_witnesses {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accident_id String    @db.Uuid
+  name        String    @db.VarChar(200)
+  cpf         String?   @db.VarChar(11)
+  phone       String?   @db.VarChar(30)
+  statement   String?
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  accidents   accidents @relation(fields: [accident_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model accidents {
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id              String                   @db.Uuid
+  unit_id                 String                   @db.Uuid
+  employee_id             String?                  @db.Uuid
+  accident_date           DateTime                 @db.Date
+  accident_time           DateTime?                @db.Time(6)
+  location                String?                  @db.VarChar(250)
+  description             String?
+  accident_type           String?                  @db.VarChar(100)
+  severity                String?                  @db.VarChar(30)
+  status                  String                   @default("OPEN") @db.VarChar(30)
+  cat_number              String?                  @db.VarChar(100)
+  created_by              String?                  @db.Uuid
+  created_at              DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                 @default(now()) @db.Timestamptz(6)
+  accident_evidences      accident_evidences[]
+  accident_history        accident_history[]
+  accident_injuries       accident_injuries[]
+  accident_investigations accident_investigations?
+  accident_witnesses      accident_witnesses[]
+  companies               companies                @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                   users?                   @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employees               employees?               @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units                   units                    @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_accidents_company")
+  @@index([accident_date], map: "idx_accidents_date")
+  @@index([employee_id], map: "idx_accidents_employee")
+  @@index([status], map: "idx_accidents_status")
+  @@index([unit_id], map: "idx_accidents_unit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model appointment_checklist_items {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointment_id String       @db.Uuid
+  description    String
+  status         String       @default("PENDING") @db.VarChar(30)
+  completed_at   DateTime?    @db.Timestamptz(6)
+  completed_by   String?      @db.Uuid
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  appointments   appointments @relation(fields: [appointment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?       @relation(fields: [completed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model appointments {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id                  String                        @db.Uuid
+  unit_id                     String?                       @db.Uuid
+  title                       String                        @db.VarChar(200)
+  description                 String?
+  start_at                    DateTime                      @db.Timestamptz(6)
+  end_at                      DateTime?                     @db.Timestamptz(6)
+  status                      String                        @default("SCHEDULED") @db.VarChar(30)
+  responsible_user_id         String?                       @db.Uuid
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  appointment_checklist_items appointment_checklist_items[]
+  companies                   companies                     @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                       users?                        @relation(fields: [responsible_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units                       units?                        @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_appointments_company")
+  @@index([start_at], map: "idx_appointments_start")
+  @@index([unit_id], map: "idx_appointments_unit")
+}
+
+model audit_logs {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?    @db.Uuid
+  company_id    String?    @db.Uuid
+  action        String     @db.VarChar(100)
+  resource_type String     @db.VarChar(100)
+  resource_id   String?    @db.Uuid
+  old_data      Json?
+  new_data      Json?
+  ip_address    String?    @db.Inet
+  user_agent    String?
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  companies     companies? @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users         users?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_audit_company")
+  @@index([created_at], map: "idx_audit_created")
+  @@index([resource_type, resource_id], map: "idx_audit_resource")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model banners {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id    String?    @db.Uuid
+  title         String?    @db.VarChar(250)
+  image_url     String
+  link_url      String?
+  display_order Int        @default(0)
+  start_date    DateTime?  @db.Date
+  end_date      DateTime?  @db.Date
+  status        String     @default("ACTIVE") @db.VarChar(30)
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime   @default(now()) @db.Timestamptz(6)
+  companies     companies? @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_banners_company")
+  @@index([display_order], map: "idx_banners_order")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model certificates {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  training_id        String              @db.Uuid
+  employee_id        String              @db.Uuid
+  template_id        String?             @db.Uuid
+  certificate_number String?             @db.VarChar(100)
+  issue_date         DateTime            @db.Date
+  expiration_date    DateTime?           @db.Date
+  file_url           String?
+  status             String              @default("GENERATED") @db.VarChar(30)
+  created_at         DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime            @default(now()) @db.Timestamptz(6)
+  employees          employees           @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  document_templates document_templates? @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  trainings          trainings           @relation(fields: [training_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_certificates_employee")
+  @@index([expiration_date], map: "idx_certificates_expiration")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model companies {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cnpj                        String?                       @db.VarChar(18)
+  legal_name                  String                        @db.VarChar(200)
+  trade_name                  String?                       @db.VarChar(200)
+  email                       String?                       @db.VarChar(255)
+  phone                       String?                       @db.VarChar(30)
+  logo_url                    String?
+  status                      String                        @default("ACTIVE") @db.VarChar(30)
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  deleted_at                  DateTime?                     @db.Timestamptz(6)
+  accident_form_links         accident_form_links[]
+  accident_templates          accident_templates[]
+  accidents                   accidents[]
+  appointments                appointments[]
+  audit_logs                  audit_logs[]
+  banners                     banners[]
+  company_invoices            company_invoices[]
+  company_services            company_services[]
+  document_templates          document_templates[]
+  document_types              document_types[]
+  employee_registration_links employee_registration_links[]
+  employees                   employees[]
+  fire_extinguishers          fire_extinguishers[]
+  investigation_templates     investigation_templates[]
+  job_functions               job_functions[]
+  managed_documents           managed_documents[]
+  nonconformities             nonconformities[]
+  notifications               notifications[]
+  service_orders              service_orders[]
+  training_types              training_types[]
+  trainings                   trainings[]
+  units                       units[]
+  user_companies              user_companies[]
+
+  @@index([cnpj], map: "idx_companies_cnpj")
+  @@index([status], map: "idx_companies_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model company_invoice_items {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_id       String            @db.Uuid
+  service_id       String?           @db.Uuid
+  description      String            @db.VarChar(250)
+  quantity         Decimal           @default(1) @db.Decimal(12, 2)
+  unit_value       Decimal           @default(0) @db.Decimal(12, 2)
+  total_value      Decimal           @default(0) @db.Decimal(12, 2)
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  company_invoices company_invoices  @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  company_services company_services? @relation(fields: [service_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model company_invoices {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id            String                  @db.Uuid
+  reference_month       DateTime                @db.Date
+  due_date              DateTime                @db.Date
+  total_amount          Decimal                 @default(0) @db.Decimal(12, 2)
+  status                String                  @default("PENDING") @db.VarChar(30)
+  payment_date          DateTime?               @db.Date
+  file_url              String?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  company_invoice_items company_invoice_items[]
+  companies             companies               @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_invoices_company")
+  @@index([due_date], map: "idx_invoices_due_date")
+  @@index([status], map: "idx_invoices_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model company_services {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id            String                  @db.Uuid
+  service_name          String                  @db.VarChar(200)
+  description           String?
+  monthly_value         Decimal                 @default(0) @db.Decimal(12, 2)
+  status                String                  @default("ACTIVE") @db.VarChar(30)
+  start_date            DateTime?               @db.Date
+  end_date              DateTime?               @db.Date
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  company_invoice_items company_invoice_items[]
+  companies             companies               @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_services_company")
+}
+
+model document_signatures {
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  document_type      String     @db.VarChar(50)
+  document_id        String     @db.Uuid
+  signer_user_id     String?    @db.Uuid
+  signer_employee_id String?    @db.Uuid
+  signature_url      String?
+  signed_at          DateTime   @default(now()) @db.Timestamptz(6)
+  ip_address         String?    @db.Inet
+  device_info        String?
+  created_at         DateTime   @default(now()) @db.Timestamptz(6)
+  employees          employees? @relation(fields: [signer_employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?     @relation(fields: [signer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model document_templates {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id     String?          @db.Uuid
+  name           String           @db.VarChar(200)
+  document_type  String           @db.VarChar(50)
+  file_url       String
+  version        Int              @default(1)
+  status         String           @default("ACTIVE") @db.VarChar(30)
+  created_by     String?          @db.Uuid
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime         @default(now()) @db.Timestamptz(6)
+  certificates   certificates[]
+  companies      companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  service_orders service_orders[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model document_types {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id        String?             @db.Uuid
+  name              String              @db.VarChar(200)
+  description       String?
+  status            String              @default("ACTIVE") @db.VarChar(30)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @db.Timestamptz(6)
+  companies         companies?          @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  managed_documents managed_documents[]
+}
+
+model document_versions {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  document_id       String            @db.Uuid
+  version           Int
+  file_url          String
+  created_by        String?           @db.Uuid
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  users             users?            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  managed_documents managed_documents @relation(fields: [document_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([document_id, version])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model employee_registration_links {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id String    @db.Uuid
+  unit_id    String    @db.Uuid
+  token_hash String    @unique
+  expires_at DateTime  @db.Timestamptz(6)
+  max_uses   Int       @default(1)
+  uses_count Int       @default(0)
+  status     String    @default("ACTIVE") @db.VarChar(30)
+  created_by String?   @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  companies  companies @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units      units     @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([expires_at, status], map: "idx_employee_registration_expiration")
+  @@index([token_hash], map: "idx_employee_registration_token")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model employees {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id            String                  @db.Uuid
+  unit_id               String                  @db.Uuid
+  job_function_id       String?                 @db.Uuid
+  name                  String                  @db.VarChar(200)
+  cpf                   String                  @db.VarChar(11)
+  registration_number   String?                 @db.VarChar(50)
+  admission_date        DateTime?               @db.Date
+  birth_date            DateTime?               @db.Date
+  email                 String?                 @db.VarChar(255)
+  phone                 String?                 @db.VarChar(30)
+  photo_url             String?
+  status                String                  @default("ACTIVE") @db.VarChar(30)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at            DateTime?               @db.Timestamptz(6)
+  accidents             accidents[]
+  certificates          certificates[]
+  document_signatures   document_signatures[]
+  companies             companies               @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  job_functions         job_functions?          @relation(fields: [job_function_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units                 units                   @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  service_orders        service_orders[]
+  training_participants training_participants[]
+
+  @@unique([company_id, cpf], map: "uq_employees_company_cpf", where: raw("(deleted_at IS NULL)"))
+  @@index([company_id], map: "idx_employees_company")
+  @@index([name], map: "idx_employees_name")
+  @@index([status], map: "idx_employees_status")
+  @@index([unit_id], map: "idx_employees_unit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model fire_extinguisher_inspection_items {
+  id                            String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inspection_id                 String                        @db.Uuid
+  item                          String                        @db.VarChar(200)
+  status                        String                        @default("OK") @db.VarChar(30)
+  observation                   String?
+  created_at                    DateTime                      @default(now()) @db.Timestamptz(6)
+  fire_extinguisher_inspections fire_extinguisher_inspections @relation(fields: [inspection_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model fire_extinguisher_inspections {
+  id                                 String                               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  extinguisher_id                    String                               @db.Uuid
+  inspection_date                    DateTime                             @db.Date
+  responsible_user_id                String?                              @db.Uuid
+  result                             String                               @default("APPROVED") @db.VarChar(30)
+  observations                       String?
+  created_at                         DateTime                             @default(now()) @db.Timestamptz(6)
+  updated_at                         DateTime                             @default(now()) @db.Timestamptz(6)
+  fire_extinguisher_inspection_items fire_extinguisher_inspection_items[]
+  fire_extinguishers                 fire_extinguishers                   @relation(fields: [extinguisher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                              users?                               @relation(fields: [responsible_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model fire_extinguishers {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id                    String                          @db.Uuid
+  unit_id                       String                          @db.Uuid
+  identification_code           String?                         @db.VarChar(100)
+  type                          String?                         @db.VarChar(100)
+  capacity                      String?                         @db.VarChar(100)
+  location                      String?                         @db.VarChar(250)
+  manufacturing_date            DateTime?                       @db.Date
+  expiration_date               DateTime?                       @db.Date
+  status                        String                          @default("ACTIVE") @db.VarChar(30)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  fire_extinguisher_inspections fire_extinguisher_inspections[]
+  companies                     companies                       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units                         units                           @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_extinguishers_company")
+  @@index([expiration_date], map: "idx_extinguishers_expiration")
+  @@index([unit_id], map: "idx_extinguishers_unit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model investigation_templates {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id String?    @db.Uuid
+  name       String     @db.VarChar(200)
+  schema     Json       @default("{}")
+  status     String     @default("ACTIVE") @db.VarChar(30)
+  created_at DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at DateTime   @default(now()) @db.Timestamptz(6)
+  companies  companies? @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model job_functions {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id  String?     @db.Uuid
+  name        String      @db.VarChar(150)
+  cbo         String?     @db.VarChar(20)
+  description String?
+  status      String      @default("ACTIVE") @db.VarChar(30)
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime    @default(now()) @db.Timestamptz(6)
+  employees   employees[]
+  companies   companies?  @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_job_functions_company")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model managed_documents {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id          String              @db.Uuid
+  unit_id             String?             @db.Uuid
+  document_type_id    String              @db.Uuid
+  title               String              @db.VarChar(250)
+  document_number     String?             @db.VarChar(100)
+  issue_date          DateTime?           @db.Date
+  expiration_date     DateTime?           @db.Date
+  status              String              @default("ACTIVE") @db.VarChar(30)
+  file_url            String?
+  responsible_user_id String?             @db.Uuid
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime            @default(now()) @db.Timestamptz(6)
+  document_versions   document_versions[]
+  companies           companies           @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  document_types      document_types      @relation(fields: [document_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users               users?              @relation(fields: [responsible_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units               units?              @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_documents_company")
+  @@index([expiration_date], map: "idx_documents_expiration")
+  @@index([unit_id], map: "idx_documents_unit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model nonconformities {
+  id                                               String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id                                       String                    @db.Uuid
+  unit_id                                          String                    @db.Uuid
+  title                                            String                    @db.VarChar(250)
+  description                                      String?
+  severity                                         String                    @default("MEDIUM") @db.VarChar(30)
+  status                                           String                    @default("OPEN") @db.VarChar(30)
+  responsible_user_id                              String?                   @db.Uuid
+  due_date                                         DateTime?                 @db.Date
+  closed_at                                        DateTime?                 @db.Timestamptz(6)
+  created_by                                       String?                   @db.Uuid
+  created_at                                       DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                                       DateTime                  @default(now()) @db.Timestamptz(6)
+  companies                                        companies                 @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_nonconformities_created_byTousers          users?                    @relation("nonconformities_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_nonconformities_responsible_user_idTousers users?                    @relation("nonconformities_responsible_user_idTousers", fields: [responsible_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units                                            units                     @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nonconformity_evidences                          nonconformity_evidences[]
+
+  @@index([company_id], map: "idx_nonconformities_company")
+  @@index([due_date], map: "idx_nonconformities_due_date")
+  @@index([status], map: "idx_nonconformities_status")
+  @@index([unit_id], map: "idx_nonconformities_unit")
+}
+
+model nonconformity_evidences {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nonconformity_id String          @db.Uuid
+  file_url         String
+  file_type        String?         @db.VarChar(50)
+  description      String?
+  created_by       String?         @db.Uuid
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  users            users?          @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nonconformities  nonconformities @relation(fields: [nonconformity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model notifications {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String     @db.Uuid
+  company_id     String?    @db.Uuid
+  type           String     @db.VarChar(100)
+  title          String     @db.VarChar(250)
+  message        String
+  reference_type String?    @db.VarChar(100)
+  reference_id   String?    @db.Uuid
+  read_at        DateTime?  @db.Timestamptz(6)
+  created_at     DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime   @default(now()) @db.Timestamptz(6)
+  companies      companies? @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id, read_at], map: "idx_notifications_unread")
+  @@index([user_id], map: "idx_notifications_user")
+}
+
+model permissions {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code             String             @unique @db.VarChar(150)
+  description      String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  role_permissions role_permissions[]
+}
+
+model push_subscriptions {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  device_id    String    @db.VarChar(200)
+  push_token   String
+  platform     String    @default("ANDROID") @db.VarChar(30)
+  active       Boolean   @default(true)
+  last_seen_at DateTime? @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+  users        users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, device_id])
+  @@index([user_id], map: "idx_push_user")
+}
+
+model role_permissions {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role_id       String      @db.Uuid
+  permission_id String      @db.Uuid
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([role_id, permission_id])
+}
+
+model roles {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String             @unique @db.VarChar(100)
+  description      String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  role_permissions role_permissions[]
+  user_roles       user_roles[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model service_orders {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id         String              @db.Uuid
+  unit_id            String              @db.Uuid
+  employee_id        String              @db.Uuid
+  template_id        String?             @db.Uuid
+  number             String?             @db.VarChar(100)
+  issue_date         DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
+  status             String              @default("GENERATED") @db.VarChar(30)
+  file_url           String?
+  signed_at          DateTime?           @db.Timestamptz(6)
+  created_by         String?             @db.Uuid
+  created_at         DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime            @default(now()) @db.Timestamptz(6)
+  companies          companies           @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?              @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employees          employees           @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  document_templates document_templates? @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units              units               @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_service_orders_company")
+  @@index([employee_id], map: "idx_service_orders_employee")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model training_participants {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  training_id       String    @db.Uuid
+  employee_id       String    @db.Uuid
+  attendance_status String    @default("PRESENT") @db.VarChar(30)
+  signature_url     String?
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @db.Timestamptz(6)
+  employees         employees @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  trainings         trainings @relation(fields: [training_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([training_id, employee_id])
+  @@index([employee_id], map: "idx_training_participants_employee")
+  @@index([training_id], map: "idx_training_participants_training")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model training_types {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id      String?     @db.Uuid
+  name            String      @db.VarChar(200)
+  nr_code         String?     @db.VarChar(30)
+  description     String?
+  workload_hours  Decimal?    @db.Decimal(6, 2)
+  validity_months Int?
+  status          String      @default("ACTIVE") @db.VarChar(30)
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime    @default(now()) @db.Timestamptz(6)
+  companies       companies?  @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  trainings       trainings[]
+
+  @@index([company_id], map: "idx_training_types_company")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model trainings {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id              String                  @db.Uuid
+  unit_id                 String                  @db.Uuid
+  training_type_id        String                  @db.Uuid
+  training_date           DateTime                @db.Date
+  expiration_date         DateTime?               @db.Date
+  instructor_name         String?                 @db.VarChar(200)
+  instructor_registration String?                 @db.VarChar(100)
+  workload_hours          Decimal?                @db.Decimal(6, 2)
+  location                String?                 @db.VarChar(200)
+  status                  String                  @default("COMPLETED") @db.VarChar(30)
+  notes                   String?
+  created_by              String?                 @db.Uuid
+  created_at              DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                @default(now()) @db.Timestamptz(6)
+  certificates            certificates[]
+  training_participants   training_participants[]
+  companies               companies               @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                   users?                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  training_types          training_types          @relation(fields: [training_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  units                   units                   @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "idx_trainings_company")
+  @@index([training_date], map: "idx_trainings_date")
+  @@index([expiration_date], map: "idx_trainings_expiration")
+  @@index([unit_id], map: "idx_trainings_unit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model units {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id                  String                        @db.Uuid
+  cnpj                        String?                       @db.VarChar(18)
+  name                        String                        @db.VarChar(200)
+  email                       String?                       @db.VarChar(255)
+  phone                       String?                       @db.VarChar(30)
+  zip_code                    String?                       @db.VarChar(10)
+  street                      String?                       @db.VarChar(200)
+  number                      String?                       @db.VarChar(30)
+  complement                  String?                       @db.VarChar(100)
+  neighborhood                String?                       @db.VarChar(150)
+  city                        String?                       @db.VarChar(150)
+  state                       String?                       @db.VarChar(2)
+  status                      String                        @default("ACTIVE") @db.VarChar(30)
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  deleted_at                  DateTime?                     @db.Timestamptz(6)
+  accident_form_links         accident_form_links[]
+  accidents                   accidents[]
+  appointments                appointments[]
+  employee_registration_links employee_registration_links[]
+  employees                   employees[]
+  fire_extinguishers          fire_extinguishers[]
+  managed_documents           managed_documents[]
+  nonconformities             nonconformities[]
+  service_orders              service_orders[]
+  trainings                   trainings[]
+  companies                   companies                     @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_units                  user_units[]
+
+  @@unique([company_id, id])
+  @@index([company_id], map: "idx_units_company")
+  @@index([status], map: "idx_units_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model user_companies {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  company_id String    @db.Uuid
+  status     String    @default("ACTIVE") @db.VarChar(30)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  companies  companies @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, company_id])
+  @@index([company_id], map: "idx_user_companies_company")
+  @@index([user_id], map: "idx_user_companies_user")
+}
+
+model user_roles {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  role_id    String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  roles      roles    @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, role_id])
+}
+
+model user_units {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  unit_id    String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  units      units    @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, unit_id])
+  @@index([unit_id], map: "idx_user_units_unit")
+  @@index([user_id], map: "idx_user_units_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                                                         String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                                      String                          @unique @db.VarChar(255)
+  password_hash                                              String
+  name                                                       String                          @db.VarChar(150)
+  phone                                                      String?                         @db.VarChar(30)
+  avatar_url                                                 String?
+  status                                                     String                          @default("ACTIVE") @db.VarChar(30)
+  last_login_at                                              DateTime?                       @db.Timestamptz(6)
+  created_at                                                 DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                                                 DateTime                        @default(now()) @db.Timestamptz(6)
+  deleted_at                                                 DateTime?                       @db.Timestamptz(6)
+  accident_evidences                                         accident_evidences[]
+  accident_form_links                                        accident_form_links[]
+  accident_history                                           accident_history[]
+  accident_investigations                                    accident_investigations[]
+  accidents                                                  accidents[]
+  appointment_checklist_items                                appointment_checklist_items[]
+  appointments                                               appointments[]
+  audit_logs                                                 audit_logs[]
+  document_signatures                                        document_signatures[]
+  document_templates                                         document_templates[]
+  document_versions                                          document_versions[]
+  employee_registration_links                                employee_registration_links[]
+  fire_extinguisher_inspections                              fire_extinguisher_inspections[]
+  managed_documents                                          managed_documents[]
+  nonconformities_nonconformities_created_byTousers          nonconformities[]               @relation("nonconformities_created_byTousers")
+  nonconformities_nonconformities_responsible_user_idTousers nonconformities[]               @relation("nonconformities_responsible_user_idTousers")
+  nonconformity_evidences                                    nonconformity_evidences[]
+  notifications                                              notifications[]
+  push_subscriptions                                         push_subscriptions[]
+  service_orders                                             service_orders[]
+  trainings                                                  trainings[]
+  user_companies                                             user_companies[]
+  user_roles                                                 user_roles[]
+  user_units                                                 user_units[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([status], map: "idx_users_status")
+}
